@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<title>Title</title>
+	<style>
+		#player {
+			width: 720px;
+			height: 480px;
+			background-color: #d2d2d2;
+		}
+	</style>
+</head>
+
+<body>
+	<p>Video device</p>
+	<select id="video-input"></select>
+	<p>Microphone</p>
+	<select id="audio-input"></select>
+	<p>Speaker</p>
+	<select id="audio-output"></select>
+	<p><button onclick="startCamera()">Start camera</button></p>
+	<p id="error" style="color:red; text-align: center; display: none">Permission denied</p>
+	<video id="player" controls autoplay></video>
+	<script>
+		'use strict'
+
+		let player = document.getElementById('player');
+		let videoInput = document.getElementById('video-input');
+		let audioInput = document.getElementById('audio-input');
+		let audioOutput = document.getElementById('audio-output');
+		let localStream;
+
+
+		navigator.mediaDevices.enumerateDevices()
+			.then(devices => {
+				for (let d of devices) {
+					if (d.kind == 'videoinput') {
+						videoInput.innerHTML += `<option value="${d.deviceId}">${d.label}</option>`;
+						console.log(d)
+					}
+					else if (d.kind == 'audioinput') {
+						audioInput.innerHTML += `<option value="${d.deviceId}">${d.label}</option>`
+					} else {
+						audioOutput.innerHTML += `<option value="${d.deviceId}">${d.label}</option>`;
+					}
+				}
+			});
+
+		function startCamera() {
+
+
+			if (!localStream) {
+				console.log('Open camera');
+
+				let videoId = videoInput.value;
+				let audioInputId = audioInput.value;
+				let audioOutputId = audioOutput.value;
+
+				navigator.mediaDevices.getUserMedia({
+					video: {
+						deviceId: videoId
+					}, audio: {
+						deviceId: audioOutputId
+					}
+				})
+					.then((stream) => {
+						localStream = stream;
+						player.srcObject = stream;
+					}).catch(er => {
+						console.log(er);
+						document.getElementById('error').style.display = '';
+					});
+			} else {
+				console.log('Change video device');
+				localStream.getVideoTracks().forEach(t => t.stop());
+				localStream.getAudioTracks().forEach(t => t.stop());
+				localStream = null;
+				startCamera();
+			}
+		}
+	</script>
+</body>
+
+</html>

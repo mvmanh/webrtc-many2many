@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        overflow: hidden;
+      }
+
+      .parent {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .parent div {
+        width: 100%;
+      }
+
+      .grid-container {
+        background-color: rgb(65, 65, 65);
+        flex: 1;
+        padding: 8px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+        grid-gap: 8px;
+        overflow: hidden;
+      }
+
+      .control-center {
+        height: auto;
+      }
+
+      .grid-item {
+        cursor: pointer;
+        border-radius: 8px;
+        width: 100%; /* Stretch each item horizontally */
+        height: 100%; /* Stretch each item vertically */
+        overflow: hidden; /* Prevents the video from overflowing its container */
+        
+        position: relative;
+      }
+
+      .grid-item * {
+        position: absolute; /* Set position to absolute for stacking */
+        top: 0; /* Position each child at the top initially */
+        left: 0;
+      }
+
+      .grid-item video {
+        z-index: 1;
+      }
+
+      .grid-item p {
+        z-index: 2;
+        top: 5px;
+        left: 10px;
+        color: white;
+        background-color: rgb(42, 42, 42);
+        border-radius: 4px;
+        padding: 2px 8px;
+      }
+
+      
+
+      .grid-item video {
+        max-width: 100%;
+        max-height: 100%;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+    </style>
+  </head>
+
+  <body>
+
+    <div class="modal" id="myModal">
+      <div class="modal-dialog">
+        <div class="modal-content">
+    
+          <!-- Modal Header -->
+          <div class="modal-header">
+            <h4 class="modal-title">Không có webcam</h4>
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+          </div>
+    
+          <!-- Modal body -->
+          <div class="modal-body">
+            <p>Thiết bị này không có webcam, bạn sẽ nhận được tín hiệu của người khác</p>
+            <p>Ngoài ra, Chrome trên Windows đòi hỏi người dùng phải tương tác với DOM, trước khi có thể tự động play video từ phía remote, vì vậy bạn hãy nhấn Close để bắt đầu quá trình kết nối</p>
+            <p>Nếu bạn là người đầu tiên, hãy chờ cho đến khi có người khác tham gia</p>
+          </div>
+    
+          <!-- Modal footer -->
+          <div class="modal-footer">
+            <button id="dialog-close" type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+          </div>
+    
+        </div>
+      </div>
+    </div>
+
+
+    <div class="parent">
+      <div class="grid-container"></div>
+      <div class="control-center">
+        <select name="device" class="custom-select" id="video-input"></select>
+      </div>
+    </div>
+
+    <script>
+
+
+      const container = document.querySelector(".grid-container");
+      async function addVideoView(media, id) {
+        const item = document.createElement("div");
+        item.id = id;
+        item.classList.add("grid-item");
+        container.appendChild(item);
+
+        const video = document.createElement("video");
+        item.appendChild(video);
+
+        video.autoplay = true;
+        video.playsInline = true;
+        // video.controls = true
+        video.srcObject = media     
+        //video.play()   // chrome windows chặn không cho autoplay
+        const title = document.createElement('p')
+        title.innerHTML = getOSType()
+        item.appendChild(title)
+
+        updateLayout();
+      }
+
+      function removeVideoView() {
+        container.removeChild(container.lastChild);
+        updateLayout();
+      }
+
+      function updateLayout() {
+        var width = screen.width;
+        const num = container.childElementCount;
+
+        if (width < 900) {
+          // mobile
+          if (num == 1) {
+            container.style.gridTemplateColumns = "repeat(1, 1fr)";
+            container.style.gridTemplateRows = "repeat(1, 1fr)";
+          } else if (num == 2) {
+            container.style.gridTemplateColumns = "repeat(1, 1fr)";
+            container.style.gridTemplateRows = "repeat(2, 1fr)";
+          } else if (num == 3) {
+            container.style.gridTemplateColumns = "repeat(1, 1fr)";
+            container.style.gridTemplateRows = "repeat(3, 1fr)";
+          } else if (num <= 4) {
+            container.style.gridTemplateColumns = "repeat(2, 1fr)";
+            container.style.gridTemplateRows = "repeat(2, 1fr)";
+          } else if (num <= 6) {
+            container.style.gridTemplateColumns = "repeat(2, 1fr)";
+            container.style.gridTemplateRows = "repeat(3, 1fr)";
+          } else if (num <= 8) {
+            container.style.gridTemplateColumns = "repeat(2, 1fr)";
+            container.style.gridTemplateRows = "repeat(4, 1fr)";
+          } else if (num <= 10) {
+            container.style.gridTemplateColumns = "repeat(2, 1fr)";
+            container.style.gridTemplateRows = "repeat(5, 1fr)";
+          } else if (num <= 12) {
+            container.style.gridTemplateColumns = "repeat(3, 1fr)";
+            container.style.gridTemplateRows = "repeat(4, 1fr)";
+          } else if (num <= 15) {
+            container.style.gridTemplateColumns = "repeat(3, 1fr)";
+            container.style.gridTemplateRows = "repeat(5, 1fr)";
+          } else if (num == 16) {
+            container.style.gridTemplateColumns = "repeat(4, 1fr)";
+            container.style.gridTemplateRows = "repeat(4, 1fr)";
+          } else if (num <= 20) {
+            container.style.gridTemplateColumns = "repeat(4, 1fr)";
+            container.style.gridTemplateRows = "repeat(5, 1fr)";
+          } else if (num <= 24) {
+            container.style.gridTemplateColumns = "repeat(4, 1fr)";
+            container.style.gridTemplateRows = "repeat(6, 1fr)";
+          } else if (num <= 28) {
+            container.style.gridTemplateColumns = "repeat(4, 1fr)";
+            container.style.gridTemplateRows = "repeat(7, 1fr)";
+          }
+        } else {
+          // pc
+          if (num == 1) {
+            container.style.gridTemplateColumns = "repeat(1, 1fr)";
+            container.style.gridTemplateRows = "repeat(1, 1fr)";
+          } else if (num == 2) {
+            container.style.gridTemplateColumns = "repeat(2, 1fr)";
+            container.style.gridTemplateRows = "repeat(1, 1fr)";
+          } else if (num <= 4) {
+            container.style.gridTemplateColumns = "repeat(2, 1fr)";
+            container.style.gridTemplateRows = "repeat(2, 1fr)";
+          } else if (num <= 6) {
+            container.style.gridTemplateColumns = "repeat(3, 1fr)";
+            container.style.gridTemplateRows = "repeat(2, 1fr)";
+          } else if (num <= 9) {
+            container.style.gridTemplateColumns = "repeat(3, 1fr)";
+            container.style.gridTemplateRows = "repeat(3, 1fr)";
+          } else if (num <= 12) {
+            container.style.gridTemplateColumns = "repeat(4, 1fr)";
+            container.style.gridTemplateRows = "repeat(3, 1fr)";
+          } else if (num <= 16) {
+            container.style.gridTemplateColumns = "repeat(4, 1fr)";
+            container.style.gridTemplateRows = "repeat(4, 1fr)";
+          } else if (num <= 20) {
+            container.style.gridTemplateColumns = "repeat(5, 1fr)";
+            container.style.gridTemplateRows = "repeat(4, 1fr)";
+          } else if (num <= 25) {
+            container.style.gridTemplateColumns = "repeat(5, 1fr)";
+            container.style.gridTemplateRows = "repeat(5, 1fr)";
+          }
+        }
+      }
+
+      let peers = new Set();
+      let peerConnections = new Map();
+      let peerStreams = new Map();
+      let nickNames = new Map();
+
+      let socket;
+      let localMedia;
+      let messageList;
+
+      let btnWebcam;
+      let myVideo;
+      let videoInput;
+
+      window.onload = async () => {
+        messageList = document.getElementById("messages");
+        btnWebcam = document.getElementById("btnWebcam");
+        myVideo = document.getElementById("myVideo");
+        videoInput = document.getElementById("video-input");
+        if (await hasWebcam()) {
+          openWebcam();
+          loadCameraList();
+        }
+        else {
+          var myModal = new bootstrap.Modal(document.getElementById('myModal'));
+          myModal.show();
+          document.querySelector('#dialog-close').addEventListener('click', openWebSocket)
+        }
+
+      };
+
+      async function hasWebcam() {
+        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+          devices = await navigator.mediaDevices.enumerateDevices()
+          return devices.some(device => device.kind === 'videoinput');
+        } else return false;
+    }
+
+
+      async function openWebcam() {
+        navigator.getUserMedia =
+          navigator.getUserMedia ||
+          navigator.webkitGetUserMedia ||
+          navigator.mozGetUserMedia;
+        try {
+          localMedia = await navigator.mediaDevices.getUserMedia({
+            video: {
+              width: {
+                width: { min: 160, max: 426 },
+                height: { min: 120, max: 240 },
+                frameRate: { ideal: 15 },
+              },
+              deviceId: videoInput.value || "",
+            },
+            audio: true,
+          });
+          if (localMedia) {
+            console.log(localMedia.getVideoTracks()[0].getSettings());
+            addVideoView(localMedia);
+          }
+          else console.log('no media allowed or found')
+          openWebSocket();
+        } catch (e) {
+          displayMessage(`Không thể kết nối đến webcam: ${e.message}`);
+        } finally {
+          
+        }
+      }
+
+      function loadCameraList() {
+        navigator.mediaDevices.enumerateDevices().then((devices) => {
+          let found = false;
+          for (let d of devices) {
+            if (d.kind == "videoinput") {
+              videoInput.innerHTML += `<option value="${d.deviceId}">${d.label}</option>`;
+              console.log(d);
+
+              if (d.deviceId.trim().length > 0) {
+                found = true;
+              }
+            }
+          }
+          if (!found) {
+            videoInput.innerHTML = "";
+            videoInput.classList.add("hide");
+          }
+        });
+      }
+
+      function getOSType() {
+        const userAgent = navigator.userAgent
+        // Check for Windows
+        if (userAgent.indexOf("Windows") !== -1) {
+            return "Windows";
+        }
+
+        // Check for Mac OS
+        if (userAgent.indexOf("Macintosh") !== -1) {
+            return "Mac OS";
+        }
+
+        // Check for Linux
+        if (userAgent.indexOf("Linux") !== -1) {
+            return "Linux";
+        }
+
+        // Check for Android
+        if (userAgent.indexOf("Android") !== -1) {
+            return "Android";
+        }
+
+        // Check for iOS
+        if (userAgent.indexOf("iPhone") !== -1 || userAgent.indexOf("iPad") !== -1 || userAgent.indexOf("iPod") !== -1) {
+            return "iOS";
+        }
+
+        // If none of the above, return unknown
+        return "Unknown";
+    }
+
+
+      function initPeer(dest) {
+        const configuration = {
+          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+        };
+        const turnConfigs = {
+          iceServers: [
+            {
+              urls: "stun:stun.relay.metered.ca:80",
+            },
+            {
+              urls: "turn:standard.relay.metered.ca:80",
+              username: "5909c54f47e4dbfd7b50294c",
+              credential: "mvFXnZjdK/p2uClf",
+            },
+            {
+              urls: "turn:standard.relay.metered.ca:80?transport=tcp",
+              username: "5909c54f47e4dbfd7b50294c",
+              credential: "mvFXnZjdK/p2uClf",
+            },
+            {
+              urls: "turn:standard.relay.metered.ca:443",
+              username: "5909c54f47e4dbfd7b50294c",
+              credential: "mvFXnZjdK/p2uClf",
+            },
+            {
+              urls: "turns:standard.relay.metered.ca:443?transport=tcp",
+              username: "5909c54f47e4dbfd7b50294c",
+              credential: "mvFXnZjdK/p2uClf",
+            },
+          ],
+        };
+        const selectedConfigs = turnConfigs; // $('#useTurn').is(':checked') ? turnConfigs : configuration;
+        let peerConnection = new RTCPeerConnection(selectedConfigs);
+        peerConnection.id = dest;
+        displayMessage("Khởi tạo peer tới " + dest);
+
+        peerConnection.onicecandidate = (e) => {
+          let candidate = e.candidate;
+          if (candidate) {
+            sendMessage({
+              type: "candidate",
+              data: candidate,
+              from: socket.id,
+              to: dest,
+            });
+            console.log(`Gửi ICE candidate đến ${dest}`);
+          }
+        };
+
+        peerConnection.onconnectionstatechange = (e) => {
+          if (peerConnection.connectionState === "connected") {
+            if (peerStreams[dest].getVideoTracks().length > 0)
+            {
+              addVideoView(peerStreams[dest], dest); 
+                displayMessage(
+                `Đã kết nối thành công với peer: ${dest} và hiển thị video: ${peerStreams[dest].getVideoTracks().length}`,
+                true,
+                true
+              );
+            }
+            else {
+              displayMessage(
+              `Đã kết nối thành công với peer: ${dest} nhưng không có video`,
+              true,
+              true
+            );
+            //alert('Đã có một người tham gia nhưng không có webcam')
+            }
+          } else {
+            console.log(
+              `Connection state với ${dest}: ${peerConnection.connectionState}`
+            );
+          }
+        };
+
+        let mediaStream = new MediaStream();
+        peerStreams[dest] = mediaStream;
+        peerConnection.ontrack = async (e) => {
+          let track = e.track;
+          displayMessage(
+            `Đã nhận được ${track.kind} track từ phía peer ${dest}`
+          );
+          mediaStream.addTrack(track);
+        };
+
+        if (localMedia) {
+          localMedia.getTracks().forEach((track) => {
+            peerConnection.addTrack(track);
+            displayMessage(
+              `Thêm track ${track.label} - ${track.kind} vào peer ${dest}`
+            );
+          });
+        }
+        
+
+        return peerConnection;
+      }
+
+      async function handleIncomingCandidate(data) {
+        let candidate = data.data;
+        let from = data.from;
+        let to = data.to;
+
+        if (to !== socket.id) {
+          return;
+        }
+
+        try {
+          await peerConnections[from].addIceCandidate(candidate);
+          displayMessage(`Đã nhận candidate từ ${from} và đã thiết lập nó.`);
+        } catch (e) {
+          displayMessage(
+            `Đã nhận một candidate nhưng thiết lập thất bại: ${e.message}`
+          );
+          console.log(candidate);
+        }
+      }
+
+      /*peerConnection là connection tới các peeer cũ đã có trước đó*/
+      async function makeCall(peerConnection) {
+        const offer = await peerConnection.createOffer({
+  offerToReceiveAudio: true, // Set to true to receive audio
+  offerToReceiveVideo: true, // Set to true to receive video
+});
+        await peerConnection.setLocalDescription(offer);
+        sendMessage({
+          type: "offer",
+          data: offer,
+          from: socket.id,
+          to: peerConnection.id,
+        });
+        displayMessage(
+          `Offer đã được tạo, đã thiết lập ở local và đã được gửi cho ${peerConnection.id}`
+        );
+      }
+
+      async function handleOffer(data) {
+        // from 11 to 5
+        let offer = data.data;
+        let from = data.from;
+        let to = data.to;
+
+        if (to !== socket.id) {
+          return;
+        }
+
+        const remoteDesc = new RTCSessionDescription(offer);
+        await peerConnections[from].setRemoteDescription(remoteDesc);
+
+        displayMessage(
+          `Đã nhận được offer từ: ${from} và thiết lập nó làm remote description`
+        );
+
+        const answer = await peerConnections[from].createAnswer({
+  offerToReceiveAudio: true, // Set to true to receive audio
+  offerToReceiveVideo: true, // Set to true to receive video
+});
+        await peerConnections[from].setLocalDescription(answer);
+
+        displayMessage(
+          `Answer đã được tạo, đã thiết lập ở local và đã được gửi đi`
+        );
+        sendMessage({
+          type: "answer",
+          data: answer,
+          from: socket.id,
+          to: from,
+        });
+      }
+
+      async function handlerAnswer(data) {
+        let answer = data.data;
+        let from = data.from;
+        let to = data.to;
+
+        if (to !== socket.id) {
+          return;
+        }
+
+        const remoteDesc = new RTCSessionDescription(answer);
+        await peerConnections[from].setRemoteDescription(remoteDesc);
+
+        displayMessage(
+          `Đã nhận được answer từ: ${from} và thiết lập nó làm remote description`
+        );
+      }
+
+      function openWebSocket() {
+        const host = location.origin.replace(/^http/, "ws");
+        socket = new WebSocket(host);
+
+        socket.onerror = handleError;
+        socket.onclose = handleClose;
+        socket.onopen = handleOpen;
+        socket.onmessage = handleMessage;
+      }
+
+      function handleError(e) {
+        displayMessage("Đã xảy ra lỗi: " + e.message);
+      }
+
+      function handleClose() {
+        displayMessage("Connection đã bị đóng");
+      }
+
+      function handleOpen() {
+        displayMessage("Đã kết nối tới websocket server");
+      }
+
+      function handleMessage(message) {
+        let data = JSON.parse(message.data);
+        console.log(`Message mới: ${JSON.stringify(data)}`);
+
+        if (data.type === "id") {
+          socket.id = data.data;
+          displayMessage(`Đã được server gán id là: ${socket.id}`);
+          document.title = socket.id;
+        } else if (data.type === "new-peer") {
+          /*
+					giả sử đang có 10 peer thì peer thứ 11 vào room
+					lúc đó mỗi peer trong 10 peer cũ sẽ tạo connection với peer thứ 11
+					rồi chờ peer thứ 11 call
+				* */
+          let id = data.data; // data.data = id của peer thứ 11
+          peers.add(id);
+          displayMessage("Một peer đã kết nối: " + id, true, true);
+
+          peerConnections[id] = initPeer(id);
+          console.log("Khởi tạo peer connection với: " + id);
+        } else if (data.type === "peer-leave") {
+          let id = data.data;
+
+          peers.delete(id);
+          peerConnections.delete(id);
+          peerStreams.delete(id);
+          let peerVideo = document.getElementById(id);
+          if (peerVideo) {
+            peerVideo.remove();
+            updateLayout();
+          }
+
+          displayMessage("Một peer đã rời khỏi room: " + id, true, true);
+          displayMessage("Còn: " + JSON.stringify([...peers]));
+        } else if (data.type === "peer-list") {
+          peers = new Set(JSON.parse(data.data));
+          displayMessage("Danh sách peer: " + JSON.stringify([...peers]));
+          connectToAllPeers();
+        } else if (data.type === "text") {
+          displayMessage(data.data, false);
+        } else if (data.type === "text-important") {
+          displayMessage(data.data, false, true);
+        } else if (data.type === "offer") {
+          handleOffer(data);
+        } else if (data.type === "answer") {
+          handlerAnswer(data);
+        } else if (data.type === "candidate") {
+          handleIncomingCandidate(data);
+        }
+      }
+
+      function connectToAllPeers() {
+        peers.forEach((p) => {
+          if (p !== socket.id) {
+            /**
+             * peer thứ 11 tạo connection với 10 peer cũ
+             * rồi call cho 10 peer cũ
+             */
+            peerConnections[p] = initPeer(p);
+            console.log("Khởi tạo peer connection với: " + p);
+            makeCall(peerConnections[p]);
+          }
+        });
+      }
+
+      function sendMessage(data) {
+        if (socket) {
+          socket.send(JSON.stringify(data));
+        } else {
+          console.log(
+            "Không thể gửi tin nhắn vì chưa kết nối tới websocket server"
+          );
+        }
+      }
+
+      function sendTextMessage(text) {
+        sendMessage({ type: "text", data: text });
+      }
+
+      function displayMessage(text, log = true, important = false) {
+        // let li = document.createElement('li')
+        // if (important) {
+        // 	li.innerHTML = `<b>${text}</b>`;
+        // }
+        // else {
+        // 	li.innerHTML = text
+        // }
+        // messageList.appendChild(li)
+
+        if (log) {
+          console.log(text);
+        }
+      }
+    </script>
+  </body>
+</html>
